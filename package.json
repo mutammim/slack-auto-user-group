@@ -1,0 +1,17 @@
+{
+	"name": "slack-auto-user-group",
+	"version": "0.0.1",
+	"main": "app.js",
+	"scripts": {
+		"start": "./node_modules/.bin/esbuild ./src/app.ts --bundle --outfile=out.js --platform=node && node out.js"
+	},
+	"keywords": [],
+	"author": "mutammim",
+	"dependencies": {
+		"@slack/bolt": "^3.9.0",
+		"esbuild": "^0.14.21"
+	},
+	"devDependencies": {
+		"typescript": "^4.5.5"
+	}
+}
