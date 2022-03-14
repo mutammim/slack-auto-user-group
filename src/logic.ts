@@ -2,20 +2,19 @@ import { Logger } from "@slack/logger";
 import { WebClient } from "@slack/web-api";
 
 /**
- * Get array of all user groups in workspace.
+ * Get an array of all user groups in the workspace.
  */
-export async function getAllUserGroups(client: WebClient) {
+export async function getAllUserGroups(client: WebClient, logger: Logger) {
 	try {
 		const result = await client.usergroups.list();
-
 		return result;
 	} catch (error) {
-		console.error(error);
+		logger.error(error);
 	}
 }
 
 /**
- * Add provided member to the user group.
+ * Add the provided user to the user group.
  */
 export async function addUserToUserGroup(
 	client: WebClient,
@@ -48,7 +47,7 @@ export async function addUserToUserGroup(
 }
 
 /**
- * Remove provided member from the user group.
+ * Remove the provided user from the user group.
  */
 export async function removeUserFromUserGroup(
 	client: WebClient,
@@ -78,6 +77,9 @@ export async function removeUserFromUserGroup(
 	}
 }
 
+/**
+ * Get the member count of the channel.
+ */
 export async function getChannelMemberCount(
 	client: WebClient,
 	logger: Logger,
@@ -94,6 +96,9 @@ export async function getChannelMemberCount(
 	}
 }
 
+/**
+ * Is the provided user an admin?
+ */
 export async function isUserAdmin(
 	client: WebClient,
 	logger: Logger,

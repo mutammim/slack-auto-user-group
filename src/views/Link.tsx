@@ -1,23 +1,28 @@
 /** @jsx JSXSlack.h **/
 /** @jsxFrag JSXSlack.Fragment **/
-import {
-	JSXSlack,
-	Modal,
-	Input,
-	ExternalSelect,
+
+/**
+ * Structure of the modal:
+ * Page 1 - Select channel and user group; invite option
+ * Page 2 - Confirmation page
+ */
+
+import JSXSlack, {
 	Checkbox,
 	CheckboxGroup,
 	Confirm,
-	ConversationsSelect,
 	Context,
+	ConversationsSelect,
+	Divider,
+	ExternalSelect,
+	Field,
+	Input,
+	Modal,
+	Mrkdwn,
 	Option,
 	Section,
-	Mrkdwn,
-	Field,
 } from "jsx-slack";
 import Fuse from "fuse.js";
-
-import { ViewOutput } from "@slack/bolt";
 
 import { app } from "../main";
 import {
@@ -27,69 +32,97 @@ import {
 } from "../logic";
 
 export function Link() {
-	// These are identifiers, used for events, actions, etc.
-	// I leave them all up here, in one object, for easy reference and usage
+	// Identifiers, all in one place
+	// These are used to identify events/actions
 
-	const id = {
-		main: "link-user-group",
+	const ID = {
+		main: "link-user-group", // This ID is called when the shortcut is started
 		page1: {
-			submissionCallback: "link-user-group_p1_submitted",
+			submitted: "link-user-group_p1_submitted-callback",
 			channelSelector: "link-user-group_p1_channel-selector",
 			userGroupSelector: "link-user-group_p1_user-group-selector",
+			inviteExistingCheckboxGroup:
+				"link-user-group_p1_invite-existing-members-checkbox-group",
+			inviteExistingCheckbox:
+				"link-user-group_p1_invite-existing-members-checkbox",
 		},
 		page2: {
-			submissionCallback: "link-user-group_p2_submitted",
-			inviteExistingMembersCheckbox:
-				"link-user-group_p2_invite-existing-members-checkbox",
+			submitted: "link-user-group_p2_submitted-callback",
 		},
 	};
 
 	/* -------------------------------------------------------------------------- */
-	/*                             Initial modal page                             */
+	/*                                   Page 1                                   */
 	/* -------------------------------------------------------------------------- */
 
-	app.shortcut(id.main, async ({ ack, client, logger, shortcut }) => {
+	app.shortcut(ID.main, async ({ ack, client, logger, shortcut }) => {
 		try {
-			/* ------------------------- Acknowledge the request ------------------------ */
+			/* --------------------------- Acknowledge request -------------------------- */
 
 			await ack();
 
-			/* --------------------------- Construct the view --------------------------- */
+			/* ----------------------------- Construct view ----------------------------- */
 
 			const view = JSXSlack(
 				<Modal
 					title="Link user group"
 					close="Cancel"
 					submit="Continue"
-					callbackId={id.page1.submissionCallback}
+					callbackId={ID.page1.submitted}
+					// Pass user ID of shortcut user into "store" (kinda)
+					// so the next screen will have it
 					privateMetadata={JSON.stringify({
-						userID: shortcut.user.id, // Keep track of the user, to verify action eligibility later
+						userID: shortcut.user.id,
 					})}
 				>
 					<Input label="Channel" required={true}>
 						<ConversationsSelect
-							name={id.page1.channelSelector}
-							placeholder="Select channel"
+							name={ID.page1.channelSelector}
+							placeholder="Choose a channel"
 							include={["public", "private"]}
 						></ConversationsSelect>
 					</Input>
+
 					<Input label="User group" required={true}>
 						<ExternalSelect
-							name={id.page1.userGroupSelector}
-							placeholder="Select user group"
+							name={ID.page1.userGroupSelector}
+							placeholder="Choose a user group"
 							minQueryLength={0}
 						></ExternalSelect>
 					</Input>
+
 					<Context>
-						Can't find your user group? Type more letters; the
+						Can't find your user group? Type a bit more; the
 						selector only shows the top 100.
 					</Context>
+
+					<Divider></Divider>
+
+					<CheckboxGroup
+						name={ID.page1.inviteExistingCheckboxGroup}
+						label="Advanced"
+						confirm={
+							<Confirm title="Are you sure?" confirm="Confirm">
+								When you invite someone to a user group, they're
+								DMed about it. Are you sure you want to invite
+								every member of this channel to the user group?
+							</Confirm>
+						}
+					>
+						<Checkbox
+							description=":warning: This action may DM a lot of people. Proceed with caution."
+							value={ID.page1.inviteExistingCheckbox}
+						>
+							Invite current channel members to user group
+						</Checkbox>
+					</CheckboxGroup>
 				</Modal>
 			);
 
-			/* ------------------------------ Show the view ----------------------------- */
+			/* -------------------------------- Show view ------------------------------- */
 
 			await client.views.open({
+				// Tell Slack that this modal is connected to that shortcut
 				trigger_id: shortcut.trigger_id,
 				view,
 			});
@@ -99,53 +132,131 @@ export function Link() {
 	});
 
 	/* -------------------------------------------------------------------------- */
-	/*                         Advanced options modal page                        */
+	/*                                   Page 2                                   */
 	/* -------------------------------------------------------------------------- */
 
-	app.view(id.page1.submissionCallback, async ({ ack, logger, payload }) => {
+	app.view(ID.page1.submitted, async ({ ack, client, logger, payload }) => {
 		try {
 			/* -------------------------- Get info from payload ------------------------- */
-			// (The payload comes from the previous page)
 
-			const { selectedChannel, selectedUserGroup, userID } =
-				processPayloadForSecondPage(payload);
+			const { userID } = JSON.parse(payload.private_metadata);
+			let selectedChannel = null;
+			let selectedUserGroup = null;
+			let inviteExisting = null;
 
-			/* --------------------------- Construct the view --------------------------- */
+			// This is how payload.state.values looks like:
+			// {
+			//     [random block ID]: { [action ID]: [useful info]
+			//     [random block ID]: { [action ID]: [useful info]
+			//     [random block ID]: { [action ID]: [useful info]
+			// }
+			// So, why don't we iterate through every item
+			// (and its single sub-item),
+			// doing stuff based on the action ID found?
 
-			const view = JSXSlack(
-				<Modal
-					title="Link user group"
-					close="Cancel"
-					submit="Continue"
-					callbackId={id.page2.submissionCallback}
-					// Storing input from first and second pages, for use on final page
-					privateMetadata={JSON.stringify({
-						userID,
-						selectedChannel,
-						selectedUserGroup,
-					})}
-				>
-					<CheckboxGroup
-						name={id.page2.inviteExistingMembersCheckbox}
-						label="Advanced"
-						confirm={
-							<Confirm title="Are you sure?" confirm="Confirm">
-								This action may ping a lot of people. Make sure
-								you want to select it before continuing.
-							</Confirm>
-						}
+			for (const blockID in payload.state.values) {
+				for (const actionID in payload.state.values[blockID]) {
+					const action = payload.state.values[blockID][actionID];
+
+					switch (actionID) {
+						case ID.page1.channelSelector:
+							selectedChannel = action.selected_conversation;
+							break;
+
+						case ID.page1.userGroupSelector:
+							selectedUserGroup = action.selected_option.value;
+							break;
+
+						case ID.page1.inviteExistingCheckboxGroup:
+							inviteExisting =
+								Array.isArray(action.selected_options) &&
+								action.selected_options.length === 0;
+							break;
+					}
+				}
+			}
+
+			/* -------------------------- Decide screen to show ------------------------- */
+
+			// If member count <= MANY_MEMBERS_THRESHOLD OR is admin
+			//     Show confirmation screen
+			// Else
+			//     Show error screen
+
+			const MANY_MEMBERS_THRESHOLD = 9;
+
+			const isChannelAboveThreshold =
+				(await getChannelMemberCount(client, logger, selectedChannel)) >
+				MANY_MEMBERS_THRESHOLD;
+
+			const isUserAdmin = await isUserAdminCheck(client, logger, userID);
+
+			let showErrorScreen = true;
+
+			if (isChannelAboveThreshold == false) showErrorScreen = false;
+			if (isUserAdmin == true) showErrorScreen = false;
+
+			/* ----------------------------- Construct view ----------------------------- */
+
+			let view;
+
+			if (showErrorScreen) {
+				view = JSXSlack(
+					<Modal
+						title="Admin status required"
+						close="Cancel"
+						submit="Close"
+						callbackId={ID.page2.submitted}
 					>
-						<Checkbox
-							description=":warning: This could result in a lot of DMs. Be careful if choosing this option."
-							value="invite-existing-channel-members"
-						>
-							Invite existing channel members to user group
-						</Checkbox>
-					</CheckboxGroup>
-				</Modal>
-			);
+						<Section>
+							The channel you're working with has over{" "}
+							{MANY_MEMBERS_THRESHOLD} members. So, for safety
+							reasons, a Workspace Admin will have to do this.
+							Sorry about that!
+						</Section>
+					</Modal>
+				);
+			} else {
+				// <Mrkdwn> needs raw={true} to make mentions work
 
-			/* -------------- Acknowledge the request, and update the view -------------- */
+				view = JSXSlack(
+					<Modal
+						title="Link user group"
+						close="Cancel"
+						submit="Complete"
+						callbackId={ID.page2.submitted}
+					>
+						<Section>
+							Review your changes, and click *Complete* when
+							you're ready!
+						</Section>
+						<Section>
+							<Field>Selected channel</Field>
+							<Field>
+								<Mrkdwn raw>
+									{"<#" + selectedChannel + ">"}
+								</Mrkdwn>
+							</Field>
+						</Section>
+						<Section>
+							<Field>Selected user group</Field>
+							<Field>
+								<Mrkdwn raw>
+									{"<!subteam^" + selectedUserGroup + ">"}
+								</Mrkdwn>
+							</Field>
+						</Section>
+						<Section>
+							<Field>Existing channel members auto-invited</Field>
+							<Field>
+								{inviteExisting ? ":warning: *Yes*" : "*No*"}
+							</Field>
+						</Section>
+					</Modal>
+				);
+			}
+
+			/* -------------------- Acknowledge request; update view -------------------- */
 
 			await ack({
 				response_action: "update",
@@ -157,279 +268,74 @@ export function Link() {
 	});
 
 	/* -------------------------------------------------------------------------- */
-	/*                           Confirmation modal page                          */
+	/*                                 Close modal                                */
 	/* -------------------------------------------------------------------------- */
 
-	app.view(
-		id.page2.submissionCallback,
+	app.view(ID.page2.submitted, async ({ ack, logger }) => {
+		try {
+			await ack();
+		} catch (error) {
+			logger.error(error);
+		}
+	});
+
+	/* -------------------------------------------------------------------------- */
+	/*                      Load user group selector options                      */
+	/* -------------------------------------------------------------------------- */
+
+	app.options(
+		ID.page1.userGroupSelector,
 		async ({ ack, client, logger, payload }) => {
 			try {
-				/* ------------------------ Get info from the payload ----------------------- */
+				const MAX_ITEMS_TO_SEND = 100;
 
-				const {
-					selectedChannel,
-					selectedUserGroup,
-					userID,
-					inviteExistingMembers,
-				} = processPayloadForConfirmationPage(payload);
+				/* --------------------------- Get all user groups -------------------------- */
 
-				/* --------- Determine whether to show error or confirmation screen --------- */
-
-				// If the channel has 50+ people, and the user running this shortcut is not an admin
-				//     Show error screen
-				// Else
-				//     Show confirmation screen
-
-				const MANY_MEMBERS_THRESHOLD = 50;
-
-				const doesChannelHaveManyPeople =
-					(await getChannelMemberCount(
-						client,
-						logger,
-						selectedChannel
-					)) >= MANY_MEMBERS_THRESHOLD;
-
-				const isUserAdmin =
-					(await isUserAdminCheck(client, logger, userID)) === false;
-
-				let showErrorScreen = false;
-
-				if (doesChannelHaveManyPeople && !isUserAdmin)
-					showErrorScreen = true;
-
-				/* --------------------------- Construct the view --------------------------- */
-
-				let view;
-
-				if (showErrorScreen) {
-					view = JSXSlack(
-						<Modal
-							title="Admin status required"
-							close="Cancel"
-							submit="Okay"
-						>
-							<Section>
-								For safety reasons, this action requires admin
-								status, because it affects a channel with{" "}
-								{MANY_MEMBERS_THRESHOLD}+ members. Sorry about
-								that! You can ask a Workspace Admin to do this
-								for you.
-							</Section>
-						</Modal>
-					);
-				} else {
-					// The raw in <Mrkdwn raw> is necessary to make the mentions work
-
-					view = JSXSlack(
-						<Modal
-							title="Link user group"
-							close="Cancel"
-							submit="Complete"
-						>
-							<Section>
-								Review your changes, and click *Complete* when
-								you're ready!
-							</Section>
-							<Section>
-								<Field>Selected channel</Field>
-								<Field>
-									<Mrkdwn raw>
-										{"<#" + selectedChannel + ">"}
-									</Mrkdwn>
-								</Field>
-							</Section>
-							<Section>
-								<Field>Selected user group</Field>
-								<Field>
-									<Mrkdwn raw>
-										{"<!subteam^" + selectedUserGroup + ">"}
-									</Mrkdwn>
-								</Field>
-							</Section>
-							<Section>
-								<Field>Existing members auto-invited</Field>
-								<Field>
-									{inviteExistingMembers ? "*Yes*" : "*No*"}
-								</Field>
-							</Section>
-						</Modal>
-					);
-				}
-
-				/* -------------- Acknowledge the request, and update the view -------------- */
-
-				await ack({
-					response_action: "update",
-					view,
+				const allUserGroups = (
+					await getAllUserGroups(client, logger)
+				).usergroups.map(({ handle, id, name }) => {
+					return {
+						handle,
+						id,
+						name,
+					};
 				});
+
+				/* ------------ Filter results; acknowledge request; update view ------------ */
+
+				if (payload.value === "") {
+					await ack({
+						options: allUserGroups
+							.slice(0, MAX_ITEMS_TO_SEND)
+							.map(({ id, name, handle }) =>
+								JSXSlack(
+									<Option value={id}>
+										{name} - @{handle}
+									</Option>
+								)
+							),
+					});
+				} else {
+					let filteredUserGroups = new Fuse(allUserGroups, {
+						keys: ["handle", "name"],
+					}).search(payload.value);
+
+					await ack({
+						options: filteredUserGroups
+							.slice(0, 100)
+							// TIL that you can double destructure
+							.map(({ item: { id, name, handle } }) =>
+								JSXSlack(
+									<Option value={id}>
+										{name} - @{handle}
+									</Option>
+								)
+							),
+					});
+				}
 			} catch (error) {
 				logger.error(error);
 			}
 		}
 	);
-
-	/* -------------------------------------------------------------------------- */
-	/*                                    Other                                   */
-	/* -------------------------------------------------------------------------- */
-
-	/* ----------------- Provide options for user group selector ---------------- */
-
-	app.options(
-		id.page1.userGroupSelector,
-		async ({ ack, client, payload }) => {
-			// Get all user groups
-
-			const allUserGroups = await (
-				await getAllUserGroups(client)
-			).usergroups.map(({ handle, id, name }) => {
-				return {
-					handle,
-					id,
-					name,
-				};
-			});
-
-			// Do filtering if necessary
-
-			let filteredUserGroups;
-
-			if (payload.value === "") {
-				// If there was no search, skip the searching
-
-				filteredUserGroups = allUserGroups;
-
-				// Send list of 100 user groups
-
-				await ack({
-					options: filteredUserGroups
-						.slice(0, 100)
-						.map(({ id, name, handle }) =>
-							JSXSlack(
-								<Option value={id}>
-									{name} — @{handle}
-								</Option>
-							)
-						),
-				});
-			} else {
-				// If there was a search, do a fuzzy search
-
-				filteredUserGroups = new Fuse(allUserGroups, {
-					keys: ["handle", "name"],
-				}).search(payload.value);
-
-				// Send list of 100 user groups
-				// item.item is because of how Fuse structures the data it returns
-
-				await ack({
-					options: filteredUserGroups.slice(0, 100).map((item) =>
-						JSXSlack(
-							<Option value={item.item.id}>
-								{item.item.name} — @{item.item.handle}
-							</Option>
-						)
-					),
-				});
-			}
-		}
-	);
-
-	/* --------------------- Process payload for second page -------------------- */
-
-	function processPayloadForSecondPage(payload: ViewOutput) {
-		/* -------------------------- Find selected channel ------------------------- */
-
-		// We need to get the channel selector's block ID
-		//     (so that we can find the right value in the state object)
-		// This is done by filtering through all the blocks, and finding the
-		//     block ID of the block with a matching action ID
-		// ?. is crucial because some blocks don't have action_id
-		// [0] takes the first result (we only expect one) from the filtering
-		// ["block_id"] grabs the relevant property, which we'll use soon
-
-		const channelSelectorBlockID = payload.blocks.filter(
-			(block) => block.element?.action_id == id.page1.channelSelector
-		)[0]["block_id"];
-
-		// Now that we have the Block ID, let's search through the keys of
-		//    the object state.values, knowing that each key is a Block ID,
-		//    and find the right object
-
-		const channelSelectorStateObj =
-			payload.state.values[channelSelectorBlockID];
-
-		// Finally, let's drill a bit more into the object
-
-		const selectedChannel =
-			channelSelectorStateObj[id.page1.channelSelector][
-				"selected_conversation"
-			];
-
-		/* ------------------------ Find selected user group ------------------------ */
-
-		// Same process as above
-
-		const userGroupSelectorBlockID = payload.blocks.filter(
-			(block) => block.element?.action_id == id.page1.userGroupSelector
-		)[0]["block_id"];
-
-		const userGroupSelectorStateObj =
-			payload.state.values[userGroupSelectorBlockID];
-
-		const selectedUserGroup =
-			userGroupSelectorStateObj[id.page1.userGroupSelector][
-				"selected_option"
-			].value;
-
-		/* ------------------------------ Find user ID ------------------------------ */
-
-		// By user ID, I'm referring to the ID of the user who started the modal
-		// This was sent from the first page to the second not with payload.state.values,
-		// but with payload.private_metadata
-		// This is because it isn't an input, so it's not going to be in payload.state
-
-		const userID = JSON.parse(payload.private_metadata).userID;
-
-		/* ------------------------------ Return values ----------------------------- */
-
-		return { selectedChannel, selectedUserGroup, userID };
-	}
-
-	/* ------------------ Process payload for confirmation page ----------------- */
-
-	function processPayloadForConfirmationPage(payload: ViewOutput) {
-		/* --------- Find selected channel, selected user group, and user ID -------- */
-
-		const { selectedChannel, selectedUserGroup, userID } = JSON.parse(
-			payload.private_metadata
-		);
-
-		/* -------- Find whether or not "invite existing members" was checked ------- */
-
-		// Same sort of process as previously
-
-		const inviteExistingMembersCheckboxBlockID = payload.blocks.filter(
-			(block) =>
-				block.element?.action_id ==
-				id.page2.inviteExistingMembersCheckbox
-		)[0]["block_id"];
-
-		const inviteExistingMembersCheckboxStateObj =
-			payload.state.values[inviteExistingMembersCheckboxBlockID];
-
-		// Boolean that says if the user wants to invite existing members
-		const inviteExistingMembers =
-			inviteExistingMembersCheckboxStateObj[
-				id.page2.inviteExistingMembersCheckbox
-			]["selected_options"].length > 0;
-
-		/* ------------------------------ Return values ----------------------------- */
-
-		return {
-			selectedChannel,
-			selectedUserGroup,
-			userID,
-			inviteExistingMembers,
-		};
-	}
 }
