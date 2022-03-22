@@ -1,6 +1,12 @@
 /** @jsx JSXSlack.h **/
 /** @jsxFrag JSXSlack.Fragment **/
 
+/**
+ * Structure of the modal:
+ * Page 1 - Select channel
+ * Page 2 - Check user groups to be removed
+ */
+
 import JSXSlack, { Modal, Section } from "jsx-slack";
 
 import { app } from "../main";
@@ -38,6 +44,12 @@ export function Delink() {
 					<Section>
 						This modal is still under construction
 						:building_construction:
+					</Section>
+
+					<Section>
+						:warning: As long as you see this message, this bot will
+						not actually add people to any user groups, and is
+						simply a UI demonstration.
 					</Section>
 				</Modal>
 			);

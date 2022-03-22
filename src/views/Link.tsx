@@ -75,6 +75,18 @@ export function Link() {
 						userID: shortcut.user.id,
 					})}
 				>
+					<Section>
+						By linking a user group to a channel, anyone who joins
+						the channel in the future will be invited to join the
+						user group.
+					</Section>
+
+					<Section>
+						:warning: As long as you see this message, this bot will
+						not actually add people to any user groups, and is
+						simply a UI demonstration.
+					</Section>
+
 					<Input label="Channel" required={true}>
 						<ConversationsSelect
 							name={ID.page1.channelSelector}
@@ -113,7 +125,7 @@ export function Link() {
 							description=":warning: This action may DM a lot of people. Proceed with caution."
 							value={ID.page1.inviteExistingCheckbox}
 						>
-							Invite current channel members to user group
+							Invite existing channel members to user group
 						</Checkbox>
 					</CheckboxGroup>
 				</Modal>
