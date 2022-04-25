@@ -93,10 +93,10 @@ export async function getUserGroupsOfChannel(
 	}
 }
 
-export async function linkUserGroupToChannel(
+export async function setUserGroupsOfChannel(
 	logger: Logger,
 	channelID: string,
-	userGroupID: string
+	userGroups: string[]
 ) {
 	try {
 		let data: Data[] = JSON.parse(
@@ -104,39 +104,15 @@ export async function linkUserGroupToChannel(
 		);
 
 		for (const item of data) {
-			if (
-				item.channel === channelID &&
-				item.userGroups.includes(userGroupID) === true
-			) {
-				item.userGroups.push(userGroupID);
-			}
+			if (item.channel === channelID) item.userGroups = userGroups;
 		}
 
-		fs.writeFileSync(process.env.DATA_FILE_PATH, "utf-8");
+		fs.writeFileSync(
+			process.env.DATA_FILE_PATH,
+			JSON.stringify(data),
+			"utf-8"
+		);
 	} catch (error) {
 		logger.error(error);
 	}
-}
-
-export async function delinkUserGroupFromChannel(
-	logger: Logger,
-	channelID: string,
-	userGroupID: string
-) {
-	let data: Data[] = JSON.parse(
-		fs.readFileSync(process.env.DATA_FILE_PATH, "utf-8")
-	);
-
-	for (const item of data) {
-		if (
-			item.channel === channelID &&
-			item.userGroups.includes(userGroupID) === true
-		) {
-			item.userGroups = item.userGroups.filter(
-				(id: string) => id !== userGroupID
-			);
-		}
-	}
-
-	fs.writeFileSync(process.env.DATA_FILE_PATH, "utf-8");
 }
