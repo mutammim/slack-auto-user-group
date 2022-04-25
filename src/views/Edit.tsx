@@ -23,6 +23,7 @@ import {
 	isUserAdmin,
 	isUserBotManager,
 	isUserChannelOwner,
+	setUserGroupsOfChannel,
 } from "../logic";
 
 export function Edit() {
@@ -122,18 +123,14 @@ export function Edit() {
 						close="Cancel"
 						submit="Continue"
 						callbackId={ID.submitted}
+						// Send channelID off to the next stage in the payload
+						privateMetadata={JSON.stringify(channelID)}
 					>
 						<Section>
 							<Mrkdwn raw>
 								*Editing user groups for{" "}
 								{"<#" + channelID + ">"}*
 							</Mrkdwn>
-						</Section>
-
-						<Section>
-							:warning: As long as you see this message, this bot
-							will not actually add people to any user groups, and
-							is simply a UI demonstration.
 						</Section>
 
 						<Input
@@ -177,9 +174,25 @@ export function Edit() {
 		}
 	});
 
-	app.view(ID.submitted, async ({ ack, logger }) => {
+	app.view(ID.submitted, async ({ ack, logger, payload }) => {
 		try {
 			await ack();
+
+			let selectedOptions =
+				payload.state.values[ID.userGroupsSelectorBlock][
+					ID.userGroupsSelector
+				].selected_options;
+			let userGroups = [];
+
+			for (const option of selectedOptions) {
+				userGroups.push(option.value);
+			}
+
+			setUserGroupsOfChannel(
+				logger,
+				JSON.parse(payload.private_metadata),
+				userGroups
+			);
 		} catch (error) {
 			logger.error(error);
 		}
