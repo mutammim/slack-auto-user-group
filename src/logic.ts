@@ -1,104 +1,39 @@
+import fs from "fs";
+
 import { Logger } from "@slack/logger";
 import { WebClient } from "@slack/web-api";
 
-/**
- * Get an array of all user groups in the workspace.
- */
+interface Data {
+	channel: string;
+	userGroups: string[];
+}
+
+export async function getUserGroupInfo(
+	client: WebClient,
+	logger: Logger,
+	userGroupID: string
+) {
+	try {
+		let userGroup = await client.usergroups.update({
+			usergroup: userGroupID,
+		});
+
+		return userGroup;
+	} catch (error) {
+		logger.error(error);
+	}
+}
+
 export async function getAllUserGroups(client: WebClient, logger: Logger) {
 	try {
-		const result = await client.usergroups.list();
-		return result;
+		let allUserGroups = await client.usergroups.list();
+
+		return allUserGroups.usergroups;
 	} catch (error) {
 		logger.error(error);
 	}
 }
 
-/**
- * Add the provided user to the user group.
- */
-export async function addUserToUserGroup(
-	client: WebClient,
-	logger: Logger,
-	memberID: string,
-	userGroupID: string
-) {
-	try {
-		// Get list of all users in user group
-
-		let users = (
-			await client.usergroups.users.list({
-				usergroup: userGroupID,
-			})
-		).users;
-
-		// Add member if they aren't already there
-
-		if (users.includes(memberID) === false) {
-			users.push(memberID);
-		}
-
-		await client.usergroups.users.update({
-			usergroup: userGroupID,
-			users: users as any,
-		});
-	} catch (error) {
-		logger.error(error);
-	}
-}
-
-/**
- * Remove the provided user from the user group.
- */
-export async function removeUserFromUserGroup(
-	client: WebClient,
-	logger: Logger,
-	memberID: string,
-	userGroupID: string
-) {
-	try {
-		// Get list of all users in user group
-
-		let users = (
-			await client.usergroups.users.list({
-				usergroup: userGroupID,
-			})
-		).users;
-
-		// Remove member if they aren't already there
-
-		users = users.filter((user) => user !== memberID);
-
-		await client.usergroups.users.update({
-			usergroup: userGroupID,
-			users: users as any,
-		});
-	} catch (error) {
-		logger.error(error);
-	}
-}
-
-/**
- * Get the member count of the channel.
- */
-export async function getChannelMemberCount(
-	client: WebClient,
-	logger: Logger,
-	channelID: string
-) {
-	try {
-		const data = await client.conversations.members({
-			channel: channelID,
-		});
-
-		return data.members.length;
-	} catch (error) {
-		logger.error(error);
-	}
-}
-
-/**
- * Is the provided user an admin?
- */
 export async function isUserAdmin(
 	client: WebClient,
 	logger: Logger,
@@ -113,4 +48,95 @@ export async function isUserAdmin(
 	} catch (error) {
 		logger.error(error);
 	}
+}
+
+export function isUserBotManager(userID: string) {
+	let botManagers = process.env.BOT_MANAGER_IDS.split(",");
+
+	return botManagers.includes(userID);
+}
+
+export async function isUserChannelOwner(
+	client: WebClient,
+	logger: Logger,
+	userID: string,
+	channelID: string
+) {
+	try {
+		let channelCreator = (
+			await client.conversations.info({
+				channel: channelID,
+			})
+		).channel.creator;
+
+		return channelCreator == userID;
+	} catch (error) {
+		logger.error(error);
+	}
+}
+
+export async function getUserGroupsOfChannel(
+	logger: Logger,
+	channelID: string
+) {
+	try {
+		const data: Data[] = JSON.parse(
+			fs.readFileSync(process.env.DATA_FILE_PATH, "utf-8")
+		);
+
+		const items = data.filter((item) => item.channel === channelID);
+
+		if (items.length === 0) return [];
+		else return items[0].userGroups;
+	} catch (error) {
+		logger.error(error);
+	}
+}
+
+export async function linkUserGroupToChannel(
+	logger: Logger,
+	channelID: string,
+	userGroupID: string
+) {
+	try {
+		let data: Data[] = JSON.parse(
+			fs.readFileSync(process.env.DATA_FILE_PATH, "utf-8")
+		);
+
+		for (const item of data) {
+			if (
+				item.channel === channelID &&
+				item.userGroups.includes(userGroupID) === true
+			) {
+				item.userGroups.push(userGroupID);
+			}
+		}
+
+		fs.writeFileSync(process.env.DATA_FILE_PATH, "utf-8");
+	} catch (error) {
+		logger.error(error);
+	}
+}
+
+export async function delinkUserGroupFromChannel(
+	logger: Logger,
+	channelID: string,
+	userGroupID: string
+) {
+	let data: Data[] = JSON.parse(
+		fs.readFileSync(process.env.DATA_FILE_PATH, "utf-8")
+	);
+
+	for (const item of data) {
+		if (
+			item.channel === channelID &&
+			item.userGroups.includes(userGroupID) === true
+		) {
+			item.userGroups = item.userGroups.filter(
+				(id: string) => id !== userGroupID
+			);
+		}
+	}
+
+	fs.writeFileSync(process.env.DATA_FILE_PATH, "utf-8");
 }

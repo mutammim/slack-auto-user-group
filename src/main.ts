@@ -1,7 +1,6 @@
 import { App } from "@slack/bolt";
 
-import { Link } from "./views/Link";
-import { Delink } from "./views/Delink";
+import { Edit } from "./views/Edit";
 // import onChannelJoin from "./events/onChannelJoin";
 // import onChannelLeave from "./events/onChannelLeave";
 
@@ -16,8 +15,7 @@ export const app = new App({
 	await app.start(process.env.PORT || 3000);
 	console.log("⚡️ App is running!");
 
-	Link();
-	Delink();
+	Edit();
 	// onChannelJoin();
 	// onChannelLeave();
 })();

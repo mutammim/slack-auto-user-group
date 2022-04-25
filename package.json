@@ -14,6 +14,7 @@
 		"jsx-slack": "^4.6.0"
 	},
 	"devDependencies": {
+		"eslint": "^8.13.0",
 		"typescript": "^4.5.5"
 	}
 }
