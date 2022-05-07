@@ -1,8 +1,8 @@
 import { App } from "@slack/bolt";
 
 import { Edit } from "./views/Edit";
-// import onChannelJoin from "./events/onChannelJoin";
-// import onChannelLeave from "./events/onChannelLeave";
+import onChannelJoin from "./events/onChannelJoin";
+import onChannelLeave from "./events/onChannelLeave";
 
 export const app = new App({
 	token: process.env.SLACK_BOT_TOKEN,
@@ -16,6 +16,6 @@ export const app = new App({
 	console.log("⚡️ App is running!");
 
 	Edit();
-	// onChannelJoin();
-	// onChannelLeave();
+	onChannelJoin();
+	onChannelLeave();
 })();

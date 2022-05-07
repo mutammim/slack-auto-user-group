@@ -8,6 +8,10 @@ interface Data {
 	userGroups: string[];
 }
 
+/* -------------------------------------------------------------------------- */
+/*                                  Get info                                  */
+/* -------------------------------------------------------------------------- */
+
 export async function getUserGroupInfo(
 	client: WebClient,
 	logger: Logger,
@@ -56,7 +60,7 @@ export function isUserBotManager(userID: string) {
 	return botManagers.includes(userID);
 }
 
-export async function isUserChannelOwner(
+export async function isUserChannelCreator(
 	client: WebClient,
 	logger: Logger,
 	userID: string,
@@ -75,16 +79,26 @@ export async function isUserChannelOwner(
 	}
 }
 
+/* -------------------------------------------------------------------------- */
+/*                     Edit linked user groups in database                    */
+/* -------------------------------------------------------------------------- */
+
 export async function getUserGroupsOfChannel(
 	logger: Logger,
 	channelID: string
 ) {
 	try {
+		// Get database state
+
 		const data: Data[] = JSON.parse(
 			fs.readFileSync(process.env.DATA_FILE_PATH, "utf-8")
 		);
 
+		// Filter for user groups linked to this channel
+
 		const items = data.filter((item) => item.channel === channelID);
+
+		// Return user groups IDs, or blank array if none
 
 		if (items.length === 0) return [];
 		else return items[0].userGroups;
@@ -99,19 +113,80 @@ export async function setUserGroupsOfChannel(
 	userGroups: string[]
 ) {
 	try {
+		// Get database state
+
 		let data: Data[] = JSON.parse(
 			fs.readFileSync(process.env.DATA_FILE_PATH, "utf-8")
 		);
 
+		// Set the channel's linked user groups
+
 		for (const item of data) {
 			if (item.channel === channelID) item.userGroups = userGroups;
 		}
+
+		// Write changes
 
 		fs.writeFileSync(
 			process.env.DATA_FILE_PATH,
 			JSON.stringify(data),
 			"utf-8"
 		);
+	} catch (error) {
+		logger.error(error);
+	}
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              Edit user groups                              */
+/* -------------------------------------------------------------------------- */
+
+export async function addUserToUserGroup(
+	client: WebClient,
+	logger: Logger,
+	userID: string,
+	userGroupID: string
+) {
+	try {
+		// Get current users in the user group
+
+		const currentUsers = (
+			await client.usergroups.users.list({ usergroup: userGroupID })
+		).users;
+
+		// Update the user group array to include userID
+		// If they're already included this will result in a duplicate, which is fine
+
+		await client.usergroups.users.update({
+			usergroup: userGroupID,
+			users: [...currentUsers, userID].toString(),
+		});
+	} catch (error) {
+		logger.error(error);
+	}
+}
+
+export async function removeUserFromUserGroup(
+	client: WebClient,
+	logger: Logger,
+	userID: string,
+	userGroupID: string
+) {
+	try {
+		/* --------------------- Get current users in user group -------------------- */
+
+		const currentUsers = (
+			await client.usergroups.users.list({ usergroup: userGroupID })
+		).users;
+
+		/* ------------------- Update user group to exclude userID ------------------ */
+
+		// This will work even if the user isn't in the user group
+
+		await client.usergroups.users.update({
+			usergroup: userGroupID,
+			users: currentUsers.filter((id) => id !== userID).toString(),
+		});
 	} catch (error) {
 		logger.error(error);
 	}

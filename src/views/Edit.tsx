@@ -22,7 +22,7 @@ import {
 	getUserGroupsOfChannel,
 	isUserAdmin,
 	isUserBotManager,
-	isUserChannelOwner,
+	isUserChannelCreator,
 	setUserGroupsOfChannel,
 } from "../logic";
 
@@ -64,7 +64,7 @@ export function Edit() {
 
 			if (
 				(await isUserAdmin(client, logger, userID)) === true ||
-				(await isUserChannelOwner(
+				(await isUserChannelCreator(
 					client,
 					logger,
 					userID,
