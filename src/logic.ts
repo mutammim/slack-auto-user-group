@@ -28,6 +28,22 @@ export async function getUserGroupInfo(
 	}
 }
 
+export async function getUserGroupUsersList(
+	client: WebClient,
+	logger: Logger,
+	userGroupID: string
+) {
+	try {
+		let list = await client.usergroups.users.list({
+			usergroup: userGroupID,
+		});
+
+		return list;
+	} catch (error) {
+		logger.error(error);
+	}
+}
+
 export async function getAllUserGroups(client: WebClient, logger: Logger) {
 	try {
 		let allUserGroups = await client.usergroups.list();
