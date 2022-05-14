@@ -14,10 +14,12 @@ import {
 
 export default function onChannelJoin() {
 	app.event("member_joined_channel", async ({ event, client, logger }) => {
-		/* ----------------------------- Get basic info ----------------------------- */
+		/* ---------------------- Get basic info and log event ---------------------- */
 
 		const channelID = event.channel;
 		const userID = event.user;
+
+		logger.info(`${userID} just joined ${channelID}`);
 
 		const allLinkedUserGroups = await getUserGroupsOfChannel(
 			logger,

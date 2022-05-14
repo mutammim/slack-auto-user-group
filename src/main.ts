@@ -1,4 +1,7 @@
-import { App } from "@slack/bolt";
+import { App, LogLevel } from "@slack/bolt";
+
+const { createWriteStream } = require("fs");
+const logWritable = createWriteStream("./logs.txt");
 
 import { Edit } from "./views/Edit";
 import onChannelJoin from "./events/onChannelJoin";
@@ -9,6 +12,33 @@ export const app = new App({
 	signingSecret: process.env.SLACK_SIGNING_SECRET,
 	socketMode: true,
 	appToken: process.env.SLACK_APP_TOKEN,
+	// Source: https://slack.dev/bolt-js/concepts#logging
+	logger: {
+		debug: (...msgs) => {
+			logWritable.write(
+				`[${Date.now()}] [DEBUG] ${JSON.stringify(msgs)}`
+			);
+		},
+		info: (...msgs) => {
+			logWritable.write(
+				`[${Date.now()}] [INFO ] ${JSON.stringify(msgs)}`
+			);
+		},
+		warn: (...msgs) => {
+			logWritable.write(
+				`[${Date.now()}] [WARN ] ${JSON.stringify(msgs)}`
+			);
+		},
+		error: (...msgs) => {
+			logWritable.write(
+				`[${Date.now()}] [ERROR] ${JSON.stringify(msgs)}`
+			);
+		},
+		// This are required...but will really just be ignored
+		setLevel: (level) => {},
+		getLevel: () => LogLevel.DEBUG,
+		setName: (name) => {},
+	},
 });
 
 (async () => {

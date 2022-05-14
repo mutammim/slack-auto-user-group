@@ -74,6 +74,14 @@ export function Edit() {
 			)
 				showErrorScreen = false;
 
+			/* -------------------------------- Log event ------------------------------- */
+
+			logger.info(
+				showErrorScreen
+					? `${userID} tried to open the editing modal for ${channelID}, but they require permission`
+					: `${userID} opened the editing modal for ${channelID}`
+			);
+
 			/* ----------------------------- Construct view ----------------------------- */
 
 			if (showErrorScreen == true) {
