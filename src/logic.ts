@@ -104,17 +104,17 @@ export async function getUserGroupsOfChannel(
 	channelID: string
 ) {
 	try {
-		// Get database state
+		/* --------------------------- Get database state --------------------------- */
 
 		const data: Data[] = JSON.parse(
 			fs.readFileSync(process.env.DATA_FILE_PATH, "utf-8")
 		);
 
-		// Filter for user groups linked to this channel
+		/* -------------- Filter for user groups linked to this channel ------------- */
 
 		const items = data.filter((item) => item.channel === channelID);
 
-		// Return user groups IDs, or blank array if none
+		/* ------------- Return user groups IDs, or blank array if none ------------- */
 
 		if (items.length === 0) return [];
 		else return items[0].userGroups;
@@ -129,19 +129,33 @@ export async function setUserGroupsOfChannel(
 	userGroups: string[]
 ) {
 	try {
-		// Get database state
+		/* --------------------------- Get database state --------------------------- */
 
 		let data: Data[] = JSON.parse(
 			fs.readFileSync(process.env.DATA_FILE_PATH, "utf-8")
 		);
 
-		// Set the channel's linked user groups
+		/* -------- Does this channel already have an entry in the database? -------- */
+
+		// If not, give it one.
+
+		let channelHasEntry = false;
+
+		for (const item of data) {
+			if (item.channel === channelID) channelHasEntry = true;
+		}
+
+		if (!channelHasEntry) {
+			data.push({ channel: channelID, userGroups: [] });
+		}
+
+		/* ------------------ Set the channel's linked user groups ------------------ */
 
 		for (const item of data) {
 			if (item.channel === channelID) item.userGroups = userGroups;
 		}
 
-		// Write changes
+		/* ------------------------------ Write changes ----------------------------- */
 
 		fs.writeFileSync(
 			process.env.DATA_FILE_PATH,
@@ -164,14 +178,15 @@ export async function addUserToUserGroup(
 	userGroupID: string
 ) {
 	try {
-		// Get current users in the user group
+		/* --------------------- Get current users in user group -------------------- */
 
 		const currentUsers = (
 			await client.usergroups.users.list({ usergroup: userGroupID })
 		).users;
 
-		// Update the user group array to include userID
-		// If they're already included this will result in a duplicate, which is fine
+		/* ------------------- Update user group to include userID ------------------ */
+
+		// If they're already included this will result in a duplicate sent over, which is okay
 
 		await client.usergroups.users.update({
 			usergroup: userGroupID,

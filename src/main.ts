@@ -16,22 +16,22 @@ export const app = new App({
 	logger: {
 		debug: (...msgs) => {
 			logWritable.write(
-				`[${Date.now()}] [DEBUG] ${JSON.stringify(msgs)}`
+				`[${Date.now()}] [DEBUG] ${JSON.stringify(msgs)}\n`
 			);
 		},
 		info: (...msgs) => {
 			logWritable.write(
-				`[${Date.now()}] [INFO ] ${JSON.stringify(msgs)}`
+				`[${Date.now()}] [INFO ] ${JSON.stringify(msgs)}\n`
 			);
 		},
 		warn: (...msgs) => {
 			logWritable.write(
-				`[${Date.now()}] [WARN ] ${JSON.stringify(msgs)}`
+				`[${Date.now()}] [WARN ] ${JSON.stringify(msgs)}\n`
 			);
 		},
 		error: (...msgs) => {
 			logWritable.write(
-				`[${Date.now()}] [ERROR] ${JSON.stringify(msgs)}`
+				`[${Date.now()}] [ERROR] ${JSON.stringify(msgs)}\n`
 			);
 		},
 		// This are required...but will really just be ignored
