@@ -1,3 +1,10 @@
 # Auto User Group for Slack
 
-Based on Slash Commands. Allows you to automatically invite people to user groups when joining channels! Still a work in progress. UI is practically functional.
+This app, using Slack commands, allows users to "link" user groups to channels, thereby auto-adding any future channel members to linked user group(s).
+
+To get set up, add the following environment variables:
+
+-   SLACK_BOT_TOKEN
+-   SLACK_APP_TOKEN (app-level token, for socket mode)
+-   SLACK_SIGNING_SECRET
+-   DATA_FILE_PATH (absolute path of data.json)
