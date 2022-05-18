@@ -8,3 +8,5 @@ To get set up, add the following environment variables:
 -   SLACK_APP_TOKEN (app-level token, for socket mode)
 -   SLACK_SIGNING_SECRET
 -   DATA_FILE_PATH (absolute path of data.json)
+-   LOGS_FILE_PATH (absolute path of logs.txt)
+-   BOT_MANAGER_IDS (comma-separated list of user IDs of users who may modify any channel's configuration)

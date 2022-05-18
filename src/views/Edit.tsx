@@ -89,7 +89,7 @@ export function Edit() {
 					<Modal
 						title="Permission required"
 						close="Cancel"
-						submit="Continue"
+						submit="Done"
 						callbackId={ID.closedIneligible}
 					>
 						<Section>
@@ -129,7 +129,7 @@ export function Edit() {
 					<Modal
 						title="Edit linked user groups"
 						close="Cancel"
-						submit="Continue"
+						submit="Done"
 						callbackId={ID.submitted}
 						// Send channelID off to the next stage in the payload
 						privateMetadata={JSON.stringify(channelID)}

@@ -1,7 +1,6 @@
 import { App, LogLevel } from "@slack/bolt";
 
-const { createWriteStream } = require("fs");
-const logWritable = createWriteStream("./logs.txt");
+const { appendFileSync } = require("fs");
 
 import { Edit } from "./views/Edit";
 import onChannelJoin from "./events/onChannelJoin";
@@ -15,22 +14,26 @@ export const app = new App({
 	// Source: https://slack.dev/bolt-js/concepts#logging
 	logger: {
 		debug: (...msgs) => {
-			logWritable.write(
+			appendFileSync(
+				process.env.LOGS_FILE_PATH,
 				`[${Date.now()}] [DEBUG] ${JSON.stringify(msgs)}\n`
 			);
 		},
 		info: (...msgs) => {
-			logWritable.write(
+			appendFileSync(
+				process.env.LOGS_FILE_PATH,
 				`[${Date.now()}] [INFO ] ${JSON.stringify(msgs)}\n`
 			);
 		},
 		warn: (...msgs) => {
-			logWritable.write(
+			appendFileSync(
+				process.env.LOGS_FILE_PATH,
 				`[${Date.now()}] [WARN ] ${JSON.stringify(msgs)}\n`
 			);
 		},
 		error: (...msgs) => {
-			logWritable.write(
+			appendFileSync(
+				process.env.LOGS_FILE_PATH,
 				`[${Date.now()}] [ERROR] ${JSON.stringify(msgs)}\n`
 			);
 		},
@@ -43,6 +46,8 @@ export const app = new App({
 
 (async () => {
 	await app.start(process.env.PORT || 3000);
+
+	appendFileSync(process.env.LOGS_FILE_PATH, `[${Date.now()}] [START]\n`);
 	console.log("⚡️ App is running!");
 
 	Edit();
