@@ -6,14 +6,24 @@ import JSXSlack, { Actions, Blocks, Button, Mrkdwn, Section } from "jsx-slack";
 import { app } from "../main";
 import {
 	addUserToUserGroup,
+	logEventHasHappened,
 	getUserGroupInfo,
 	getUserGroupsOfChannel,
 	getUserGroupUsersList,
 	removeUserFromUserGroup,
+	hasEventAlreadyHappened,
 } from "../logic";
 
 export default function onChannelJoin() {
 	app.event("member_joined_channel", async ({ event, client, logger }) => {
+		/* ---------- Return if this event happened already (record if not) --------- */
+
+		if (hasEventAlreadyHappened(logger, event["event_ts"]) === true) {
+			return;
+		} else {
+			logEventHasHappened(logger, event["event_ts"]);
+		}
+
 		/* ---------------------- Get basic info and log event ---------------------- */
 
 		const channelID = event.channel;

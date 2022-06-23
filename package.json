@@ -9,6 +9,7 @@
 	"author": "mutammim",
 	"dependencies": {
 		"@slack/bolt": "^3.9.0",
+		"dotenv": "^16.0.1",
 		"esbuild": "^0.14.21",
 		"fuse.js": "^6.5.3",
 		"jsx-slack": "^4.6.0"

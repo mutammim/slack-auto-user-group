@@ -8,11 +8,21 @@ import {
 	getUserGroupInfo,
 	getUserGroupsOfChannel,
 	getUserGroupUsersList,
+	hasEventAlreadyHappened,
+	logEventHasHappened,
 	removeUserFromUserGroup,
 } from "../logic";
 
 export default function onChannelLeave() {
 	app.event("member_left_channel", async ({ event, client, logger }) => {
+		/* ---------- Return if this event happened already (record if not) --------- */
+
+		if (hasEventAlreadyHappened(logger, event["event_ts"]) === true) {
+			return;
+		} else {
+			logEventHasHappened(logger, event["event_ts"]);
+		}
+
 		/* ---------------------- Get basic info and log event ---------------------- */
 
 		const channelID = event.channel;

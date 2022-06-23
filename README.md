@@ -21,11 +21,11 @@ Auto User Group allows user groups to be "linked" to Slack channels. Anyone who 
 
 Set up a Slack bot using [the provided manifest](manifest.yml). Then, add the following environment variables, perhaps in a `.env` file.
 
--   SLACK_BOT_TOKEN
--   SLACK_APP_TOKEN (app-level token, for socket mode)
--   SLACK_SIGNING_SECRET
--   DATA_FILE_PATH (absolute path of data.json)
--   LOGS_FILE_PATH (absolute path of logs.txt)
--   BOT_MANAGER_IDS (comma-separated list of user IDs of users who may modify any channel's configuration)
+-   `SLACK_BOT_TOKEN`
+-   `SLACK_APP_TOKEN` (app-level token, for socket mode)
+-   `SLACK_SIGNING_SECRET`
+-   `DATA_FILE_PATH` (absolute path of data.json)
+-   `LOGS_FILE_PATH` (absolute path of logs.txt)
+-   `BOT_MANAGER_IDS` (comma-separated list of user IDs of users who may modify any channel's configuration)
 
 Depending on your environment (such as the shell you're using), you may need to install a library that automatically handles environment variables.

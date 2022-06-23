@@ -8,6 +8,8 @@ interface Data {
 	userGroups: string[];
 }
 
+let eventTimestamps: string[] = [];
+
 /* -------------------------------------------------------------------------- */
 /*                                  Get info                                  */
 /* -------------------------------------------------------------------------- */
@@ -218,6 +220,22 @@ export async function removeUserFromUserGroup(
 			usergroup: userGroupID,
 			users: currentUsers.filter((id) => id !== userID).toString(),
 		});
+	} catch (error) {
+		logger.error(error);
+	}
+}
+
+export function logEventHasHappened(logger: Logger, eventTS: string) {
+	try {
+		return eventTimestamps.push(eventTS);
+	} catch (error) {
+		logger.error(error);
+	}
+}
+
+export function hasEventAlreadyHappened(logger: Logger, eventTS: string) {
+	try {
+		return eventTimestamps.includes(eventTS);
 	} catch (error) {
 		logger.error(error);
 	}

@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import { App, LogLevel } from "@slack/bolt";
 
 const { appendFileSync } = require("fs");
